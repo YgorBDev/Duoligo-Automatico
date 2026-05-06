@@ -47,11 +47,23 @@ def run_streak():
                     page.keyboard.press("Enter")
 
                 # Esperar o redirecionamento
-                print("Aguardando carregar a página principal (esto pode demorar)...")
-                page.wait_for_url("**/learn*", timeout=90000)
-                print("Login realizado com sucesso!")
+                print("Aguardando carregar a página principal (isto pode demorar)...")
+                try:
+                    page.wait_for_url("**/learn*", timeout=60000)
+                    print("Login realizado com sucesso!")
+                except Exception:
+                    print(f"Aviso: Não chegou em /learn. URL atual: {page.url}")
+                    # Verificar se tem mensagem de erro visível
+                    if page.locator('text="incorrect"').is_visible() or page.locator('text="incorreta"').is_visible():
+                        print("🚨 ERRO: Senha ou E-mail incorretos!")
+                    elif page.locator('text="captcha"').is_visible() or page.locator('canvas').is_visible():
+                        print("🚨 ERRO: O Duolingo pediu um CAPTCHA (desafio humano).")
+                    else:
+                        print("Página atual parece diferente. Tentando seguir mesmo assim...")
+                        # Se já estivermos logados mas em outra página, o código abaixo pode funcionar
             except Exception as e:
                 print(f"Erro no login: {e}")
+                print(f"URL na hora do erro: {page.url}")
                 page.screenshot(path="debug_login_error.png")
                 browser.close()
                 return
