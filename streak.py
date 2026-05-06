@@ -11,37 +11,29 @@ def run_streak():
         return
 
     with sync_playwright() as p:
-        # Lançar o navegador (headless=True para rodar no GitHub Actions)
+        # Lançar o navegador
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
         )
         page = context.new_page()
+        page.set_default_timeout(120000) # 2 minutos de fôlego para o robô
 
-        print("Abrindo Duolingo...")
-        page.goto("https://www.duolingo.com/?is_login=true")
+        print("Abrindo página de login do Duolingo...")
+        page.goto("https://www.duolingo.com/log-in")
 
         # Verificar se precisa logar
         if "learn" not in page.url:
-            print("Fazendo login...")
+            print("Iniciando processo de login...")
             try:
-                # Esperar o botão de 'já tenho conta' ou os campos de login
-                page.wait_for_load_state("networkidle")
-                
-                have_account = page.locator('data-test=have-account')
-                if have_account.is_visible(timeout=10000):
-                    print("Clicando em 'Já tenho uma conta'...")
-                    have_account.click()
-                    time.sleep(2)
-                
+                # Espera o campo de e-mail aparecer
                 print("Preenchendo dados...")
-                # Espera explícita pelo campo de e-mail
-                page.wait_for_selector('data-test=email-input', timeout=20000)
+                page.wait_for_selector('data-test=email-input', timeout=30000)
                 page.fill('data-test=email-input', username)
                 page.fill('data-test=password-input', password)
                 
                 # Tenta vários seletores para o botão de entrar
-                print("Tentando clicar no botão de entrar...")
+                print("Clicando no botão de entrar...")
                 selectors = ['data-test=login-button', 'data-test=register-button', 'button:has-text("Entrar")', 'button:has-text("Login")']
                 clicked = False
                 for sel in selectors:
@@ -49,19 +41,17 @@ def run_streak():
                     if btn.is_visible():
                         btn.click()
                         clicked = True
-                        print(f"  Logado usando: {sel}")
                         break
                 
                 if not clicked:
-                    print("Aviso: Não encontrei o botão de entrar com os nomes conhecidos. Tentando pressionar Enter...")
                     page.keyboard.press("Enter")
 
                 # Esperar o redirecionamento
-                print("Aguardando carregar a página principal...")
-                page.wait_for_url("**/learn*", timeout=60000)
+                print("Aguardando carregar a página principal (esto pode demorar)...")
+                page.wait_for_url("**/learn*", timeout=90000)
                 print("Login realizado com sucesso!")
             except Exception as e:
-                print(f"Erro detalhado no login: {e}")
+                print(f"Erro no login: {e}")
                 page.screenshot(path="debug_login_error.png")
                 browser.close()
                 return
