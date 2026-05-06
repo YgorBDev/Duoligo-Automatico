@@ -32,9 +32,24 @@ def run_streak():
                 
                 page.fill('data-test=email-input', username)
                 page.fill('data-test=password-input', password)
-                page.click('data-test=register-button')
                 
-                page.wait_for_url("**/learn*", timeout=30000)
+                # Tenta o botão de login (pode ser login-button ou register-button dependendo da versão)
+                login_submit = page.locator('data-test=login-button')
+                if not login_submit.is_visible():
+                    login_submit = page.locator('data-test=register-button')
+                
+                login_submit.click()
+                print("Botão de entrar clicado, aguardando redirecionamento...")
+                
+                # Esperar um pouco mais e ver se aparece erro de senha
+                time.sleep(5)
+                if page.locator('text="Senha incorreta"').is_visible() or page.locator('text="usuário não encontrado"').is_visible():
+                    print("Erro: Usuário ou senha incorretos no Duolingo!")
+                    page.screenshot(path="login_fail_credentials.png")
+                    browser.close()
+                    return
+
+                page.wait_for_url("**/learn*", timeout=45000)
                 print("Login realizado com sucesso!")
             except Exception as e:
                 print(f"Erro ao logar: {e}")
