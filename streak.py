@@ -25,36 +25,44 @@ def run_streak():
         if "learn" not in page.url:
             print("Fazendo login...")
             try:
-                # Clica no botão de login se existir
-                login_btn = page.locator('data-test=have-account')
-                if login_btn.is_visible():
-                    login_btn.click()
+                # Esperar o botão de 'já tenho conta' ou os campos de login
+                page.wait_for_load_state("networkidle")
                 
+                have_account = page.locator('data-test=have-account')
+                if have_account.is_visible(timeout=10000):
+                    print("Clicando em 'Já tenho uma conta'...")
+                    have_account.click()
+                    time.sleep(2)
+                
+                print("Preenchendo dados...")
+                # Espera explícita pelo campo de e-mail
+                page.wait_for_selector('data-test=email-input', timeout=20000)
                 page.fill('data-test=email-input', username)
                 page.fill('data-test=password-input', password)
                 
-                # Tenta o botão de login (pode ser login-button ou register-button dependendo da versão)
-                login_submit = page.locator('data-test=login-button')
-                if not login_submit.is_visible():
-                    login_submit = page.locator('data-test=register-button')
+                # Tenta vários seletores para o botão de entrar
+                print("Tentando clicar no botão de entrar...")
+                selectors = ['data-test=login-button', 'data-test=register-button', 'button:has-text("Entrar")', 'button:has-text("Login")']
+                clicked = False
+                for sel in selectors:
+                    btn = page.locator(sel)
+                    if btn.is_visible():
+                        btn.click()
+                        clicked = True
+                        print(f"  Logado usando: {sel}")
+                        break
                 
-                login_submit.click()
-                print("Botão de entrar clicado, aguardando redirecionamento...")
-                
-                # Esperar um pouco mais e ver se aparece erro de senha
-                time.sleep(5)
-                if page.locator('text="Senha incorreta"').is_visible() or page.locator('text="usuário não encontrado"').is_visible():
-                    print("Erro: Usuário ou senha incorretos no Duolingo!")
-                    page.screenshot(path="login_fail_credentials.png")
-                    browser.close()
-                    return
+                if not clicked:
+                    print("Aviso: Não encontrei o botão de entrar com os nomes conhecidos. Tentando pressionar Enter...")
+                    page.keyboard.press("Enter")
 
-                page.wait_for_url("**/learn*", timeout=45000)
+                # Esperar o redirecionamento
+                print("Aguardando carregar a página principal...")
+                page.wait_for_url("**/learn*", timeout=60000)
                 print("Login realizado com sucesso!")
             except Exception as e:
-                print(f"Erro ao logar: {e}")
-                # Tirar screenshot para debug se der erro
-                page.screenshot(path="login_error.png")
+                print(f"Erro detalhado no login: {e}")
+                page.screenshot(path="debug_login_error.png")
                 browser.close()
                 return
 
