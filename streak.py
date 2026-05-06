@@ -33,34 +33,28 @@ def run_streak():
                 page.fill('data-test=password-input', password)
                 
                 # Tenta vários seletores para o botão de entrar
-                print("Clicando no botão de entrar...")
-                selectors = ['data-test=login-button', 'data-test=register-button', 'button:has-text("Entrar")', 'button:has-text("Login")']
-                clicked = False
+                print("Enviando formulário...")
+                page.keyboard.press("Enter") # Tenta o Enter primeiro que é mais garantido
+                time.sleep(2)
+                
+                selectors = ['data-test=login-button', 'data-test=register-button', 'button[type="submit"]']
                 for sel in selectors:
                     btn = page.locator(sel)
                     if btn.is_visible():
                         btn.click()
-                        clicked = True
                         break
-                
-                if not clicked:
-                    page.keyboard.press("Enter")
 
-                # Esperar o redirecionamento
-                print("Aguardando carregar a página principal (isto pode demorar)...")
+                # Esperar o redirecionamento REAL
+                print("Aguardando confirmação de login...")
                 try:
-                    page.wait_for_url("**/learn*", timeout=60000)
-                    print("Login realizado com sucesso!")
+                    page.wait_for_url("**/learn*", timeout=45000)
+                    print("✅ Login realizado com sucesso!")
                 except Exception:
-                    print(f"Aviso: Não chegou em /learn. URL atual: {page.url}")
-                    # Verificar se tem mensagem de erro visível
-                    if page.locator('text="incorrect"').is_visible() or page.locator('text="incorreta"').is_visible():
-                        print("🚨 ERRO: Senha ou E-mail incorretos!")
-                    elif page.locator('text="captcha"').is_visible() or page.locator('canvas').is_visible():
-                        print("🚨 ERRO: O Duolingo pediu um CAPTCHA (desafio humano).")
-                    else:
-                        print("Página atual parece diferente. Tentando seguir mesmo assim...")
-                        # Se já estivermos logados mas em outra página, o código abaixo pode funcionar
+                    print(f"❌ FALHA CRÍTICA: O login não funcionou. URL atual: {page.url}")
+                    page.screenshot(path="erro_login_final.png")
+                    print("Verifique se sua senha está correta nos Secrets do GitHub.")
+                    browser.close()
+                    return # PARA O PROGRAMA AQUI
             except Exception as e:
                 print(f"Erro no login: {e}")
                 print(f"URL na hora do erro: {page.url}")
